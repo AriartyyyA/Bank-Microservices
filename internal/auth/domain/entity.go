@@ -14,7 +14,7 @@ type User struct {
 }
 
 type UserRepository interface {
-	CreateUser(ctx context.Context, email, passwordHash string) error
+	CreateUser(ctx context.Context, user User) error
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetUserByID(ctx context.Context, id string) (*User, error)
 }
