@@ -1,0 +1,40 @@
+services:
+  postgres_auth:
+    image: postgres:18-alpine
+    container_name: gobank_postgres_auth
+    environment:
+      POSTGRES_DB: gobank_auth
+      POSTGRES_USER: gobank
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gobank -d gobank_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: gobank-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass secret
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "secret", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: gobank-mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+
+volumes:
+  postgres_auth_data:
