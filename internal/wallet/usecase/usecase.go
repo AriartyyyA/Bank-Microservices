@@ -36,3 +36,53 @@ func (uc *WalletUseCase) CreateWallet(ctx context.Context, userID string) error 
 
 	return nil
 }
+
+func (uc *WalletUseCase) Transfer(ctx context.Context, fromWalletID, toWalletID string, amount int64) error {
+	if amount < 0 {
+		return domain.ErrTransactionNegativeAmount
+	}
+
+	if fromWalletID == toWalletID {
+		return domain.ErrToSendMyself
+	}
+
+	walletFrom, err := uc.repo.FindWalletByID(ctx, fromWalletID)
+	if err != nil {
+		return fmt.Errorf("find wallet: %w", err)
+	}
+
+	if walletFrom.Balance < amount {
+		return domain.ErrNoMoney
+	}
+
+	_, err = uc.repo.FindWalletByID(ctx, toWalletID)
+	if err != nil {
+		return fmt.Errorf("find wallet: %w", err)
+	}
+
+	return uc.repo.WithTx(ctx, func(ctx context.Context) error {
+		if err := uc.repo.UpdateBalance(ctx, fromWalletID, -amount); err != nil {
+			return fmt.Errorf("update balance from: %w", err)
+		}
+
+		if err := uc.repo.UpdateBalance(ctx, toWalletID, amount); err != nil {
+			return fmt.Errorf("update balance from: %w", err)
+		}
+
+		id := uuid.New().String()
+
+		transaction := domain.Transaction{
+			ID:           id,
+			FromWalletID: fromWalletID,
+			ToWalletID:   toWalletID,
+			Amount:       amount,
+			CreatedAt:    time.Now(),
+		}
+
+		if err := uc.repo.CreateTransaction(ctx, transaction); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
