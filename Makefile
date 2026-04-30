@@ -6,3 +6,6 @@ migrate_auth:
 		-path migrations/auth \
 		-database "postgres://gobank:secret@localhost:5432/gobank_auth?sslmode=disable" \
 		up
+
+run-auth:
+	go run cmd/auth/main.go

@@ -26,9 +26,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	repo := pg_repo.NewPostgresRepo(pool)
-	uc := usecase.NewAuthUseCase(repo, os.Getenv("JWT_SECRET"))
-	handlers := transport.NewHandlerAuth(uc, os.Getenv("JWT_SECRET"))
+	uc := usecase.NewAuthUseCase(repo, jwtSecret)
+	handlers := transport.NewHandlerAuth(uc, jwtSecret)
 
 	router := chi.NewRouter()
 	handlers.RegisterRoutes(router)

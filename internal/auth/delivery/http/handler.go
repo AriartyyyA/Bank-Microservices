@@ -32,8 +32,15 @@ func NewHandlerAuth(uc AuthUserCase, jwtSecret string) *HandlerAuth {
 }
 
 func (h *HandlerAuth) RegisterRoutes(router chi.Router) {
+	// Публичные роуты, без мидлвари
 	router.Post("/auth/register", h.Register)
 	router.Post("/auth/login", h.Login)
+
+	// защищенные роуты
+	router.Group(func(r chi.Router) {
+		r.Use(h.JWTMiddleware)
+		r.Get("/users/me", h.Me)
+	})
 }
 
 func (h *HandlerAuth) Register(w http.ResponseWriter, r *http.Request) {
@@ -93,4 +100,9 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, resp)
+}
+
+func (h *HandlerAuth) Me(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(userIDKey).(string)
+	respondJSON(w, http.StatusOK, map[string]string{"user_id": userID})
 }

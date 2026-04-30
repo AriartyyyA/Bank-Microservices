@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -43,6 +44,8 @@ func (h *HandlerAuth) JWTMiddleware(next http.Handler) http.Handler {
 			respondError(w, http.StatusUnauthorized, "invalid token")
 			return
 		}
+
+		log.Printf("claims: %+v", claims)
 
 		userID := claims["userID"].(string)
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
