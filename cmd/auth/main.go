@@ -28,7 +28,7 @@ func main() {
 
 	repo := pg_repo.NewPostgresRepo(pool)
 	uc := usecase.NewAuthUseCase(repo, os.Getenv("JWT_SECRET"))
-	handlers := transport.NewHandlerAuth(uc)
+	handlers := transport.NewHandlerAuth(uc, os.Getenv("JWT_SECRET"))
 
 	router := chi.NewRouter()
 	handlers.RegisterRoutes(router)

@@ -18,14 +18,16 @@ type AuthUserCase interface {
 }
 
 type HandlerAuth struct {
-	uc       AuthUserCase
-	validate *validator.Validate
+	uc        AuthUserCase
+	validate  *validator.Validate
+	jwtSecret string
 }
 
-func NewHandlerAuth(uc AuthUserCase) *HandlerAuth {
+func NewHandlerAuth(uc AuthUserCase, jwtSecret string) *HandlerAuth {
 	return &HandlerAuth{
-		uc:       uc,
-		validate: validator.New(),
+		uc:        uc,
+		validate:  validator.New(),
+		jwtSecret: jwtSecret,
 	}
 }
 
