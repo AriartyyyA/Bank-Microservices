@@ -1,6 +1,6 @@
 services:
   postgres_auth:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     container_name: gobank_postgres_auth
     environment:
       POSTGRES_DB: gobank_auth
