@@ -9,6 +9,7 @@ import (
 	"github.com/AriartyyyA/gobank/internal/auth/delivery/http/dto"
 	"github.com/AriartyyyA/gobank/internal/auth/domain"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 )
 
 type AuthUserCase interface {
@@ -17,12 +18,14 @@ type AuthUserCase interface {
 }
 
 type HandlerAuth struct {
-	uc AuthUserCase
+	uc       AuthUserCase
+	validate *validator.Validate
 }
 
 func NewHandlerAuth(uc AuthUserCase) *HandlerAuth {
 	return &HandlerAuth{
-		uc: uc,
+		uc:       uc,
+		validate: validator.New(),
 	}
 }
 
@@ -34,49 +37,52 @@ func (h *HandlerAuth) RegisterRoutes(router chi.Router) {
 func (h *HandlerAuth) Register(w http.ResponseWriter, r *http.Request) {
 	var reqDto dto.LoginAndRegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqDto); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		respondError(w, http.StatusBadRequest, "Incorrect data")
+		return
+	}
+
+	if err := h.validate.Struct(reqDto); err != nil {
+		respondError(w, http.StatusBadRequest, "Bad email or password")
 		return
 	}
 
 	if err := h.uc.Register(r.Context(), reqDto.Email, reqDto.Password); err != nil {
 		if errors.Is(err, domain.ErrUserExists) {
-			w.WriteHeader(http.StatusConflict)
+			respondError(w, http.StatusConflict, "User exists")
 			return
 		}
 
-		w.WriteHeader(http.StatusInternalServerError)
+		respondError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode("Пользователь успешно создан"); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	respondJSON(w, http.StatusCreated, map[string]string{"status": "User created"})
 }
 
 func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 	var reqDto dto.LoginAndRegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqDto); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		respondError(w, http.StatusBadRequest, "Incorrect data")
+		return
+	}
+
+	if err := h.validate.Struct(reqDto); err != nil {
+		respondError(w, http.StatusBadRequest, "Bad email or password")
 		return
 	}
 
 	token, err := h.uc.Login(r.Context(), reqDto.Email, reqDto.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(map[string]string{"error": "user not found"})
+			respondError(w, http.StatusNotFound, "User not found")
 			return
 		}
 		if errors.Is(err, domain.ErrWrongPassword) {
-			w.WriteHeader(http.StatusUnauthorized)
+			respondError(w, http.StatusUnauthorized, "Incorrect password or email")
 			return
 		}
 
-		w.WriteHeader(http.StatusInternalServerError)
+		respondError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 
@@ -84,11 +90,5 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 		Token: token,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
+	respondJSON(w, http.StatusOK, resp)
 }
