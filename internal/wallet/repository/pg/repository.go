@@ -3,6 +3,7 @@ package pg_repo
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
 	"github.com/jackc/pgx/v5"
@@ -69,10 +70,36 @@ func (r *PostgresRepo) FindWalletByID(ctx context.Context, walletID string) (*do
 }
 
 func (r *PostgresRepo) FindWalletByUserID(ctx context.Context, userID string) (*domain.Wallet, error) {
-	return nil, nil
+	var wallet domain.Wallet
+
+	query := `SELECT id, user_id, balance, created_at, updated_at FROM wallets WHERE user_id = $1`
+
+	row := r.connPool.QueryRow(ctx, query, userID)
+
+	if err := row.Scan(
+		&wallet.ID,
+		&wallet.UserID,
+		&wallet.Balance,
+		&wallet.CreatedAt,
+		&wallet.UpdatedAt,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrWalletNotFound
+		}
+
+		return nil, err
+	}
+
+	return &wallet, nil
 }
 
 func (r *PostgresRepo) UpdateBalance(ctx context.Context, walletID string, amount int64) error {
+	query := `UPDATE wallets SET balance = balance + $1 WHERE id = $2`
+
+	if _, err := r.connPool.Exec(ctx, query, amount, walletID); err != nil {
+		return fmt.Errorf("update balance: %w", err)
+	}
+
 	return nil
 }
 
@@ -85,5 +112,18 @@ func (r *PostgresRepo) WithTx(ctx context.Context, fn func(ctx context.Context) 
 }
 
 func (r *PostgresRepo) CreateTransaction(ctx context.Context, transaction domain.Transaction) error {
+	query := `INSERT INTO transactions(id, from_wallet_id, to_wallet_id, amount) VALUES($1, $2, $3, $4)`
+
+	if _, err := r.connPool.Exec(
+		ctx,
+		query,
+		transaction.ID,
+		transaction.FromWalletID,
+		transaction.ToWalletID,
+		transaction.Amount,
+	); err != nil {
+		return fmt.Errorf("create transaction: %w", err)
+	}
+
 	return nil
 }
