@@ -96,6 +96,15 @@ func (uc *WalletUseCase) GetBalance(ctx context.Context, walletID string) (int64
 	return wallet.Balance, nil
 }
 
+func (uc *WalletUseCase) GetBalanceByUserID(ctx context.Context, userID string) (int64, error) {
+	wallet, err := uc.repo.FindWalletByUserID(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("get balance: %w", err)
+	}
+
+	return wallet.Balance, nil
+}
+
 func (uc *WalletUseCase) GetHistory(ctx context.Context, walletID string) ([]*domain.Transaction, error) {
 	transactions, err := uc.repo.GetTransactionsByWalletID(ctx, walletID)
 	if err != nil {
