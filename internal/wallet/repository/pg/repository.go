@@ -18,6 +18,20 @@ type PostgresRepo struct {
 	connPool *pgxpool.Pool
 }
 
+type txKey struct {
+}
+
+func (r *PostgresRepo) getConn(ctx context.Context) interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+} {
+	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok && tx != nil {
+		return tx
+	}
+	return r.connPool
+}
+
 func NewPostgresRepo(connPool *pgxpool.Pool) domain.WalletRepository {
 	return &PostgresRepo{
 		connPool: connPool,
@@ -25,9 +39,9 @@ func NewPostgresRepo(connPool *pgxpool.Pool) domain.WalletRepository {
 }
 
 func (r *PostgresRepo) CreateWallet(ctx context.Context, wallet domain.Wallet) error {
-	query := `INSERT INTO wallets(id, user_id, balance) VALUES ($1, $2, $3, $4, $5)`
+	query := `INSERT INTO wallets(id, user_id, balance) VALUES ($1, $2, $3)`
 
-	if _, err := r.connPool.Exec(
+	if _, err := r.getConn(ctx).Exec(
 		ctx,
 		query,
 		wallet.ID,
@@ -49,7 +63,7 @@ func (r *PostgresRepo) CreateWallet(ctx context.Context, wallet domain.Wallet) e
 func (r *PostgresRepo) FindWalletByID(ctx context.Context, walletID string) (*domain.Wallet, error) {
 	query := `SELECT id, user_id, balance, created_at, updated_at FROM wallets WHERE id = $1`
 
-	row := r.connPool.QueryRow(ctx, query, walletID)
+	row := r.getConn(ctx).QueryRow(ctx, query, walletID)
 
 	var wallet domain.Wallet
 	if err := row.Scan(
@@ -74,7 +88,7 @@ func (r *PostgresRepo) FindWalletByUserID(ctx context.Context, userID string) (*
 
 	query := `SELECT id, user_id, balance, created_at, updated_at FROM wallets WHERE user_id = $1`
 
-	row := r.connPool.QueryRow(ctx, query, userID)
+	row := r.getConn(ctx).QueryRow(ctx, query, userID)
 
 	if err := row.Scan(
 		&wallet.ID,
@@ -96,7 +110,7 @@ func (r *PostgresRepo) FindWalletByUserID(ctx context.Context, userID string) (*
 func (r *PostgresRepo) UpdateBalance(ctx context.Context, walletID string, amount int64) error {
 	query := `UPDATE wallets SET balance = balance + $1 WHERE id = $2`
 
-	if _, err := r.connPool.Exec(ctx, query, amount, walletID); err != nil {
+	if _, err := r.getConn(ctx).Exec(ctx, query, amount, walletID); err != nil {
 		return fmt.Errorf("update balance: %w", err)
 	}
 
@@ -108,7 +122,7 @@ func (r *PostgresRepo) GetTransactionsByWalletID(ctx context.Context, walletID s
 		FROM transactions
 		WHERE from_wallet_id = $1 OR to_wallet_id = $1`
 
-	rows, err := r.connPool.Query(ctx, query, walletID)
+	rows, err := r.getConn(ctx).Query(ctx, query, walletID)
 	if err != nil {
 		return nil, fmt.Errorf("query transactions: %w", err)
 	}
@@ -133,13 +147,30 @@ func (r *PostgresRepo) GetTransactionsByWalletID(ctx context.Context, walletID s
 }
 
 func (r *PostgresRepo) WithTx(ctx context.Context, fn func(ctx context.Context) error) error {
+	tx, err := r.connPool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("tx error: %w", err)
+	}
+
+	ctx = context.WithValue(ctx, txKey{}, tx)
+
+	if err := fn(ctx); err != nil {
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
+			return fmt.Errorf("tx rollback error: %w", rbErr)
+		}
+		return fmt.Errorf("tx error: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("tx error: %w", err)
+	}
+
 	return nil
 }
 
 func (r *PostgresRepo) CreateTransaction(ctx context.Context, transaction domain.Transaction) error {
 	query := `INSERT INTO transactions(id, from_wallet_id, to_wallet_id, amount) VALUES($1, $2, $3, $4)`
 
-	if _, err := r.connPool.Exec(
+	if _, err := r.getConn(ctx).Exec(
 		ctx,
 		query,
 		transaction.ID,
