@@ -11,7 +11,7 @@ migrate_wallet:
 	migrate \
   		-path migrations/wallet \
   		-database "postgres://gobank:secret@localhost:5433/gobank_wallet?sslmode=disable" \
-  		up 1
+  		up 
 
 migrate_wallet_down:
 	migrate \

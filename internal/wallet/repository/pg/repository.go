@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -45,7 +46,26 @@ func (r *PostgresRepo) CreateWallet(ctx context.Context, wallet domain.Wallet) e
 }
 
 func (r *PostgresRepo) FindWalletByID(ctx context.Context, walletID string) (*domain.Wallet, error) {
-	return nil, nil
+	query := `SELECT id, user_id, balance, created_at, updated_at FROM wallets WHERE id = $1`
+
+	row := r.connPool.QueryRow(ctx, query, walletID)
+
+	var wallet domain.Wallet
+	if err := row.Scan(
+		&wallet.ID,
+		&wallet.UserID,
+		&wallet.Balance,
+		&wallet.CreatedAt,
+		&wallet.UpdatedAt,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrWalletNotFound
+		}
+
+		return nil, err
+	}
+
+	return &wallet, nil
 }
 
 func (r *PostgresRepo) FindWalletByUserID(ctx context.Context, userID string) (*domain.Wallet, error) {
