@@ -7,6 +7,6 @@ var (
 	ErrNoMoney                   = errors.New("low balance")
 	ErrTransactionNegativeAmount = errors.New("negative amount")
 	ErrToSendMyself              = errors.New("to send amount myself")
-	ErrWalletIsExists            = errors.New("wallet is exists")
+	ErrWalletExists              = errors.New("wallet already exists")
 	ErrFailedToUpdateBalance     = errors.New("failed to update balance")
 )

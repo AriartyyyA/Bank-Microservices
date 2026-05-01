@@ -16,6 +16,23 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres_wallet:
+    image: postgres:16-alpine
+    container_name: gobank_postgres_wallet
+    environment:
+      POSTGRES_DB: gobank_wallet
+      POSTGRES_USER: gobank
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_wallet_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gobank -d gobank_wallet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     container_name: gobank-redis
@@ -38,3 +55,4 @@ services:
 
 volumes:
   postgres_auth_data:
+  postgres_wallet_data:

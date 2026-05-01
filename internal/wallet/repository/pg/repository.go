@@ -2,11 +2,14 @@ package pg_repo
 
 import (
 	"context"
+	"errors"
 
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Так можно проверять соответствие интерфейсу
 var _ domain.WalletRepository = (*PostgresRepo)(nil)
 
 type PostgresRepo struct {
@@ -20,6 +23,24 @@ func NewPostgresRepo(connPool *pgxpool.Pool) domain.WalletRepository {
 }
 
 func (r *PostgresRepo) CreateWallet(ctx context.Context, wallet domain.Wallet) error {
+	query := `INSERT INTO wallets(id, user_id, balance) VALUES ($1, $2, $3, $4, $5)`
+
+	if _, err := r.connPool.Exec(
+		ctx,
+		query,
+		wallet.ID,
+		wallet.UserID,
+		wallet.Balance,
+	); err != nil {
+		var pgErr *pgconn.PgError
+
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return domain.ErrWalletExists
+		}
+
+		return err
+	}
+
 	return nil
 }
 
