@@ -104,7 +104,32 @@ func (r *PostgresRepo) UpdateBalance(ctx context.Context, walletID string, amoun
 }
 
 func (r *PostgresRepo) GetTransactionsByWalletID(ctx context.Context, walletID string) ([]*domain.Transaction, error) {
-	return nil, nil
+	query := `SELECT id, from_wallet_id, to_wallet_id, amount, created_at 
+		FROM transactions
+		WHERE from_wallet_id = $1 OR to_wallet_id = $1`
+
+	rows, err := r.connPool.Query(ctx, query, walletID)
+	if err != nil {
+		return nil, fmt.Errorf("query transactions: %w", err)
+	}
+	defer rows.Close()
+
+	var transactions []*domain.Transaction
+	for rows.Next() {
+		var t domain.Transaction
+		if err := rows.Scan(
+			&t.ID,
+			&t.FromWalletID,
+			&t.ToWalletID,
+			&t.Amount,
+			&t.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan transaction: %w", err)
+		}
+		transactions = append(transactions, &t)
+	}
+
+	return transactions, nil
 }
 
 func (r *PostgresRepo) WithTx(ctx context.Context, fn func(ctx context.Context) error) error {
