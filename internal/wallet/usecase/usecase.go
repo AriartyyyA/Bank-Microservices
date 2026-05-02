@@ -66,7 +66,7 @@ func (uc *WalletUseCase) Transfer(ctx context.Context, fromWalletID, toWalletID 
 		}
 
 		if err := uc.repo.UpdateBalance(ctx, toWalletID, amount); err != nil {
-			return fmt.Errorf("update balance from: %w", err)
+			return fmt.Errorf("update balance to: %w", err)
 		}
 
 		id := uuid.New().String()

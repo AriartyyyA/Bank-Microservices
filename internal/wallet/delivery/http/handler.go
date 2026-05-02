@@ -2,9 +2,11 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 
+	"github.com/AriartyyyA/gobank/internal/wallet/delivery/http/dto"
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -58,6 +60,37 @@ func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) Transfer(w http.ResponseWriter, r *http.Request) {
+	var transfer dto.TransferRequestDTO
+
+	if err := json.NewDecoder(r.Body).Decode(&transfer); err != nil {
+		respondError(w, http.StatusBadRequest, "decoding error")
+		return
+	}
+
+	err := h.uc.Transfer(r.Context(), transfer.FromWalletID, transfer.ToWalletID, transfer.Amount)
+	if err != nil {
+		if errors.Is(err, domain.ErrTransactionNegativeAmount) {
+			respondError(w, http.StatusBadRequest, "negative amount")
+			return
+		}
+		if errors.Is(err, domain.ErrToSendMyself) {
+			respondError(w, http.StatusBadRequest, "try to send myself")
+			return
+		}
+		if errors.Is(err, domain.ErrNoMoney) {
+			respondError(w, http.StatusBadRequest, "no money")
+			return
+		}
+		if errors.Is(err, domain.ErrFailedToUpdateBalance) {
+			respondError(w, http.StatusInternalServerError, "update balance error")
+			return
+		}
+
+		respondError(w, http.StatusInternalServerError, "server err")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"transfer status": "ok"})
 }
 
 func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
