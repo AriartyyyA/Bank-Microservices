@@ -113,3 +113,17 @@ func (uc *WalletUseCase) GetHistory(ctx context.Context, walletID string) ([]*do
 
 	return transactions, nil
 }
+
+func (uc *WalletUseCase) GetHistoryByUserID(ctx context.Context, userID string) ([]*domain.Transaction, error) {
+	wallet, err := uc.repo.FindWalletByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("find wallet error: %w", err)
+	}
+
+	transactions, err := uc.repo.GetTransactionsByWalletID(ctx, wallet.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get transactions: %w", err)
+	}
+
+	return transactions, nil
+}

@@ -17,6 +17,7 @@ type WalletUseCase interface {
 	Transfer(ctx context.Context, fromWalletID, toWalletID string, amount int64) error
 	GetBalance(ctx context.Context, walletID string) (int64, error)
 	GetHistory(ctx context.Context, walletID string) ([]*domain.Transaction, error)
+	GetHistoryByUserID(ctx context.Context, userID string) ([]*domain.Transaction, error)
 	GetBalanceByUserID(ctx context.Context, userID string) (int64, error)
 }
 
@@ -110,4 +111,18 @@ func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) GetHistory(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(userIDKey).(string)
+
+	history, err := h.uc.GetHistoryByUserID(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrWalletNotFound) {
+			respondError(w, http.StatusNotFound, "wallet not found")
+			return
+		}
+
+		respondError(w, http.StatusInternalServerError, "server error")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, history)
 }
