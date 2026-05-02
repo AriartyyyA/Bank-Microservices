@@ -7,12 +7,14 @@ import (
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
 	"github.com/AriartyyyA/gobank/internal/wallet/domain/mocks"
 	"github.com/AriartyyyA/gobank/internal/wallet/usecase"
+	pm "github.com/AriartyyyA/gobank/internal/wallet/usecase/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestWalletUseCase_Transfer_Success(t *testing.T) {
 	mockRepo := mocks.NewWalletRepository(t)
+	mockProducer := pm.NewEventProducer(t)
 
 	fromWallet := &domain.Wallet{
 		ID:      "from",
@@ -40,11 +42,12 @@ func TestWalletUseCase_Transfer_Success(t *testing.T) {
 		Return(nil)
 	mockRepo.On("UpdateBalance", mock.Anything, "to", int64(100)).
 		Return(nil)
-
 	mockRepo.On("CreateTransaction", mock.Anything, mock.Anything).
 		Return(nil)
+	mockProducer.On("Publish", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
 
-	uc := usecase.NewWalletUseCase(mockRepo)
+	uc := usecase.NewWalletUseCase(mockRepo, mockProducer)
 	err := uc.Transfer(
 		context.Background(),
 		fromWallet.ID,
@@ -66,7 +69,9 @@ func TestWalletUseCase_Transfer_NegativeAmount(t *testing.T) {
 	}
 
 	mockRepo := mocks.NewWalletRepository(t)
-	uc := usecase.NewWalletUseCase(mockRepo)
+	mockProducer := pm.NewEventProducer(t)
+
+	uc := usecase.NewWalletUseCase(mockRepo, mockProducer)
 	err := uc.Transfer(
 		context.Background(),
 		fromWallet.ID,
@@ -88,7 +93,9 @@ func TestWalletUseCase_Transfer_SameWallet(t *testing.T) {
 	}
 
 	mockRepo := mocks.NewWalletRepository(t)
-	uc := usecase.NewWalletUseCase(mockRepo)
+	mockProducer := pm.NewEventProducer(t)
+
+	uc := usecase.NewWalletUseCase(mockRepo, mockProducer)
 	err := uc.Transfer(
 		context.Background(),
 		fromWallet.ID,
@@ -110,10 +117,13 @@ func TestWalletUseCase_Transfer_NoMoney(t *testing.T) {
 	}
 
 	mockRepo := mocks.NewWalletRepository(t)
+	mockProducer := pm.NewEventProducer(t)
+
 	mockRepo.On("FindWalletByID", mock.Anything, "from").
 		Return(fromWallet, nil)
 
-	uc := usecase.NewWalletUseCase(mockRepo)
+	uc := usecase.NewWalletUseCase(mockRepo, mockProducer)
+
 	err := uc.Transfer(
 		context.Background(),
 		fromWallet.ID,
@@ -126,10 +136,12 @@ func TestWalletUseCase_Transfer_NoMoney(t *testing.T) {
 
 func TestWalletUseCase_Transfer_WalletNotFound(t *testing.T) {
 	mockRepo := mocks.NewWalletRepository(t)
+	mockProducer := pm.NewEventProducer(t)
+
 	mockRepo.On("FindWalletByID", mock.Anything, "from").
 		Return(nil, domain.ErrWalletNotFound)
 
-	uc := usecase.NewWalletUseCase(mockRepo)
+	uc := usecase.NewWalletUseCase(mockRepo, mockProducer)
 	err := uc.Transfer(
 		context.Background(),
 		"from",

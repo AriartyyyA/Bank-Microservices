@@ -2,21 +2,29 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
+	"github.com/AriartyyyA/gobank/pkg/kafka/events"
 	"github.com/google/uuid"
 )
 
 type WalletUseCase struct {
-	repo domain.WalletRepository
+	repo     domain.WalletRepository
+	producer EventProducer
 }
 
-func NewWalletUseCase(repo domain.WalletRepository) *WalletUseCase {
+func NewWalletUseCase(repo domain.WalletRepository, producer EventProducer) *WalletUseCase {
 	return &WalletUseCase{
-		repo: repo,
+		repo:     repo,
+		producer: producer,
 	}
+}
+
+type EventProducer interface {
+	Publish(ctx context.Context, key string, value []byte) error
 }
 
 func (uc *WalletUseCase) CreateWallet(ctx context.Context, userID string) (*domain.Wallet, error) {
@@ -80,6 +88,17 @@ func (uc *WalletUseCase) Transfer(ctx context.Context, fromWalletID, toWalletID 
 		}
 
 		if err := uc.repo.CreateTransaction(ctx, transaction); err != nil {
+			return err
+		}
+
+		eventData, _ := json.Marshal(events.TransferEvent{
+			TransactionID: id,
+			FromWalletID:  fromWalletID,
+			ToWalletID:    toWalletID,
+			Amount:        amount,
+		})
+
+		if err := uc.producer.Publish(ctx, id, eventData); err != nil {
 			return err
 		}
 

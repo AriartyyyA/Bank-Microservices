@@ -9,6 +9,7 @@ import (
 	transport "github.com/AriartyyyA/gobank/internal/wallet/delivery/http"
 	pg_repo "github.com/AriartyyyA/gobank/internal/wallet/repository/pg"
 	"github.com/AriartyyyA/gobank/internal/wallet/usecase"
+	"github.com/AriartyyyA/gobank/pkg/kafka"
 	"github.com/AriartyyyA/gobank/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,7 +31,8 @@ func main() {
 	jwtSecret := os.Getenv("JWT_SECRET")
 
 	repo := pg_repo.NewPostgresRepo(pool)
-	uc := usecase.NewWalletUseCase(repo)
+	producer := kafka.NewProducer([]string{"localhost:9092"}, "transfers")
+	uc := usecase.NewWalletUseCase(repo, producer)
 	handlers := transport.NewHandlerWallet(uc)
 
 	router := chi.NewRouter()

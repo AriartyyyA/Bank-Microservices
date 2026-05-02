@@ -24,6 +24,10 @@ type WalletUseCase interface {
 	GetWalletByUserID(ctx context.Context, userID string) (*domain.Wallet, error)
 }
 
+type EventProducer interface {
+	Publish(ctx context.Context, key string, value []byte) error
+}
+
 type HandlerWallet struct {
 	uc       WalletUseCase
 	validate *validator.Validate
