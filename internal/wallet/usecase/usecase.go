@@ -19,7 +19,7 @@ func NewWalletUseCase(repo domain.WalletRepository) *WalletUseCase {
 	}
 }
 
-func (uc *WalletUseCase) CreateWallet(ctx context.Context, userID string) error {
+func (uc *WalletUseCase) CreateWallet(ctx context.Context, userID string) (*domain.Wallet, error) {
 	id := uuid.New().String()
 
 	wallet := domain.Wallet{
@@ -31,10 +31,10 @@ func (uc *WalletUseCase) CreateWallet(ctx context.Context, userID string) error 
 	}
 
 	if err := uc.repo.CreateWallet(ctx, wallet); err != nil {
-		return fmt.Errorf("create wallet: %w", err)
+		return nil, fmt.Errorf("create wallet: %w", err)
 	}
 
-	return nil
+	return &wallet, nil
 }
 
 func (uc *WalletUseCase) Transfer(ctx context.Context, fromWalletID, toWalletID string, amount int64) error {
@@ -126,4 +126,31 @@ func (uc *WalletUseCase) GetHistoryByUserID(ctx context.Context, userID string) 
 	}
 
 	return transactions, nil
+}
+
+func (uc *WalletUseCase) UpdateBalance(ctx context.Context, userID string, amount int64) (int64, error) {
+	wallet, err := uc.repo.FindWalletByUserID(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("find wallet error: %w", err)
+	}
+
+	if err := uc.repo.UpdateBalance(ctx, wallet.ID, amount); err != nil {
+		return 0, fmt.Errorf("update balance error: %w", err)
+	}
+
+	wallet, err = uc.repo.FindWalletByID(ctx, wallet.ID)
+	if err != nil {
+		return 0, fmt.Errorf("find wallet error after update: %w", err)
+	}
+
+	return wallet.Balance, nil
+}
+
+func (uc *WalletUseCase) GetWalletByUserID(ctx context.Context, userID string) (*domain.Wallet, error) {
+	wallet, err := uc.repo.FindWalletByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("find wallet error: %w", err)
+	}
+
+	return wallet, nil
 }

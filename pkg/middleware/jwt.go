@@ -50,4 +50,5 @@ func JWTMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+
 }

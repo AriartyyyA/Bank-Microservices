@@ -5,3 +5,7 @@ type TransferRequestDTO struct {
 	ToWalletID   string `json:"to_wallet_id"`
 	Amount       int64  `json:"amount"`
 }
+
+type DepositRequestDTO struct {
+	Amount int64 `json"amount"`
+}

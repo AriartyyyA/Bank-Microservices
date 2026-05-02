@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/AriartyyyA/gobank/internal/auth/delivery/http/dto"
@@ -57,6 +58,7 @@ func (h *HandlerAuth) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.uc.Register(r.Context(), reqDto.Email, reqDto.Password); err != nil {
+		log.Printf("register error: %v", err)
 		if errors.Is(err, domain.ErrUserExists) {
 			respondError(w, http.StatusConflict, "User exists")
 			return

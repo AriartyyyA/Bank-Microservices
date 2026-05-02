@@ -14,12 +14,14 @@ import (
 )
 
 type WalletUseCase interface {
-	CreateWallet(ctx context.Context, userID string) error
+	CreateWallet(ctx context.Context, userID string) (*domain.Wallet, error)
 	Transfer(ctx context.Context, fromWalletID, toWalletID string, amount int64) error
 	GetBalance(ctx context.Context, walletID string) (int64, error)
 	GetHistory(ctx context.Context, walletID string) ([]*domain.Transaction, error)
 	GetHistoryByUserID(ctx context.Context, userID string) ([]*domain.Transaction, error)
 	GetBalanceByUserID(ctx context.Context, userID string) (int64, error)
+	UpdateBalance(ctx context.Context, userID string, amount int64) (int64, error)
+	GetWalletByUserID(ctx context.Context, userID string) (*domain.Wallet, error)
 }
 
 type HandlerWallet struct {
@@ -39,12 +41,32 @@ func (h *HandlerWallet) RegisterRoutes(router chi.Router) {
 	router.Get("/wallets/me", h.GetBalance)
 	router.Post("/wallets/transfer", h.Transfer)
 	router.Get("/wallet/history", h.GetHistory)
+	router.Post("/wallets/deposit", h.DepositBalance)
+	router.Get("/wallet", h.GetWalletID)
+}
+
+func (h *HandlerWallet) GetWalletID(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(middleware.UserIDKey).(string)
+
+	wallet, err := h.uc.GetWalletByUserID(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrWalletNotFound) {
+			respondError(w, http.StatusNotFound, "wallet not found")
+			return
+		}
+
+		respondError(w, http.StatusInternalServerError, "server error")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, wallet)
 }
 
 func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(string)
 
-	if err := h.uc.CreateWallet(r.Context(), userID); err != nil {
+	wallet, err := h.uc.CreateWallet(r.Context(), userID)
+	if err != nil {
 		if errors.Is(err, domain.ErrWalletExists) {
 			respondError(w, http.StatusConflict, "wallet already exists")
 			return
@@ -54,7 +76,25 @@ func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, "user created")
+	respondJSON(w, http.StatusCreated, wallet)
+}
+
+func (h *HandlerWallet) DepositBalance(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(middleware.UserIDKey).(string)
+	var reqDto dto.DepositRequestDTO
+
+	if err := json.NewDecoder(r.Body).Decode(&reqDto); err != nil {
+		respondError(w, http.StatusBadRequest, "decoding error")
+		return
+	}
+
+	amount, err := h.uc.UpdateBalance(r.Context(), userID, reqDto.Amount)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "update error")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]int64{"amount": amount})
 }
 
 func (h *HandlerWallet) Transfer(w http.ResponseWriter, r *http.Request) {
