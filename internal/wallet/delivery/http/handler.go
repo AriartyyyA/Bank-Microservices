@@ -8,6 +8,7 @@ import (
 
 	"github.com/AriartyyyA/gobank/internal/wallet/delivery/http/dto"
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
+	"github.com/AriartyyyA/gobank/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
@@ -40,12 +41,8 @@ func (h *HandlerWallet) RegisterRoutes(router chi.Router) {
 	router.Get("/wallet/history", h.GetHistory)
 }
 
-type contextKey string
-
-const userIDKey contextKey = "userID"
-
 func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey).(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 
 	if err := h.uc.CreateWallet(r.Context(), userID); err != nil {
 		if errors.Is(err, domain.ErrWalletExists) {
@@ -95,7 +92,7 @@ func (h *HandlerWallet) Transfer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey).(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 
 	balance, err := h.uc.GetBalanceByUserID(r.Context(), userID)
 	if err != nil {
@@ -111,7 +108,7 @@ func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) GetHistory(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey).(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 
 	history, err := h.uc.GetHistoryByUserID(r.Context(), userID)
 	if err != nil {

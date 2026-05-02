@@ -8,6 +8,7 @@ import (
 
 	"github.com/AriartyyyA/gobank/internal/auth/delivery/http/dto"
 	"github.com/AriartyyyA/gobank/internal/auth/domain"
+	"github.com/AriartyyyA/gobank/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
@@ -38,7 +39,7 @@ func (h *HandlerAuth) RegisterRoutes(router chi.Router) {
 
 	// защищенные роуты
 	router.Group(func(r chi.Router) {
-		r.Use(h.JWTMiddleware)
+		r.Use(middleware.JWTMiddleware(h.jwtSecret))
 		r.Get("/users/me", h.Me)
 	})
 }
@@ -103,6 +104,6 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerAuth) Me(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey).(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 	respondJSON(w, http.StatusOK, map[string]string{"user_id": userID})
 }
