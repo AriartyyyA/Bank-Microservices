@@ -6,16 +6,19 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	_ "github.com/AriartyyyA/gobank/docs/auth"
 	grpcDelivery "github.com/AriartyyyA/gobank/internal/auth/delivery/grpc"
 	transport "github.com/AriartyyyA/gobank/internal/auth/delivery/http"
 	pg_repo "github.com/AriartyyyA/gobank/internal/auth/repository/pg"
 	"github.com/AriartyyyA/gobank/internal/auth/usecase"
+	"github.com/AriartyyyA/gobank/pkg/ratelimit"
 	pb "github.com/AriartyyyA/gobank/proto/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"google.golang.org/grpc"
 )
@@ -42,6 +45,12 @@ func main() {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("REDIS_URL"),
+		Password: os.Getenv("REDIS_PASSWORD"),
+	})
+	rate := ratelimit.NewRateLimit(redisClient, 100, time.Minute)
+
 	repo := pg_repo.NewPostgresRepo(pool)
 	uc := usecase.NewAuthUseCase(repo, jwtSecret)
 
@@ -63,6 +72,7 @@ func main() {
 	handlers := transport.NewHandlerAuth(uc, jwtSecret)
 
 	router := chi.NewRouter()
+	router.Use(ratelimit.Middleware(rate))
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
 	))
