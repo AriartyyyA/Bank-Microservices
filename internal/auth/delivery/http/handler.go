@@ -17,6 +17,7 @@ import (
 type AuthUserCase interface {
 	Register(ctx context.Context, email, password string) error
 	Login(ctx context.Context, email, password string) (string, error)
+	ValidateToken(token string) (userID, email string, err error)
 }
 
 type HandlerAuth struct {

@@ -3,17 +3,21 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
 	"os"
 
 	_ "github.com/AriartyyyA/gobank/docs/auth"
+	grpcDelivery "github.com/AriartyyyA/gobank/internal/auth/delivery/grpc"
 	transport "github.com/AriartyyyA/gobank/internal/auth/delivery/http"
 	pg_repo "github.com/AriartyyyA/gobank/internal/auth/repository/pg"
 	"github.com/AriartyyyA/gobank/internal/auth/usecase"
+	pb "github.com/AriartyyyA/gobank/proto/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"google.golang.org/grpc"
 )
 
 func init() {
@@ -40,6 +44,22 @@ func main() {
 
 	repo := pg_repo.NewPostgresRepo(pool)
 	uc := usecase.NewAuthUseCase(repo, jwtSecret)
+
+	grpcServer := grpc.NewServer()
+	authGrpc := grpcDelivery.NewAuthGRPCServer(uc)
+	pb.RegisterAuthServiceServer(grpcServer, authGrpc)
+
+	go func() {
+		lis, err := net.Listen("tcp", ":9090")
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("gRPC server started on :9090")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	handlers := transport.NewHandlerAuth(uc, jwtSecret)
 
 	router := chi.NewRouter()
