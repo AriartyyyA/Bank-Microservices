@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	transport "github.com/AriartyyyA/gobank/internal/wallet/delivery/http"
 	grpcClient "github.com/AriartyyyA/gobank/internal/wallet/grpc"
@@ -28,12 +29,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	brokers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
+
 	repo := pg_repo.NewPostgresRepo(pool)
-	producer := kafka.NewProducer([]string{"localhost:9092"}, "transfers")
+	producer := kafka.NewProducer(brokers, "transfers")
 	uc := usecase.NewWalletUseCase(repo, producer)
 	handlers := transport.NewHandlerWallet(uc)
 
-	authClient, err := grpcClient.NewAuthClient("localhost:9090")
+	authClient, err := grpcClient.NewAuthClient(os.Getenv("AUTH_GRPC_ADDR"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,7 +45,7 @@ func main() {
 	router.Use(transport.GRPCAuthMiddleware(authClient))
 	handlers.RegisterRoutes(router)
 
-	if err := http.ListenAndServe(":8081", router); err != nil {
+	if err := http.ListenAndServe(":8080", router); err != nil {
 		log.Fatal(err)
 	}
 }

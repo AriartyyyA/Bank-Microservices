@@ -35,6 +35,8 @@
 | Тесты | testify + mockery |
 | CI | GitHub Actions |
 | Инфраструктура | Docker Compose |
+
+
 ## Основные фичи
 
 - **Регистрация и авторизация** — JWT access токены
@@ -69,22 +71,13 @@ docker compose up -d
 ### 4. Примени миграции
 
 ```bash
-# Auth БД
 migrate -path migrations/auth \
   -database "postgres://gobank:secret@localhost:5432/gobank_auth?sslmode=disable" up
 
-# Wallet БД
 migrate -path migrations/wallet \
   -database "postgres://gobank:secret@localhost:5433/gobank_wallet?sslmode=disable" up
 ```
 
-### 5. Запусти сервисы
-
-```bash
-# В отдельных терминалах
-go run ./cmd/auth/
-go run ./cmd/wallet/
-go run ./cmd/notification/
 ```
 
 ## API

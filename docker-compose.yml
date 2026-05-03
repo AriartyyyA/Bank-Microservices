@@ -81,6 +81,61 @@ services:
       timeout: 10s
       retries: 5
 
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: auth
+    container_name: gobank-auth
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      DB_URL: postgres://gobank:secret@postgres_auth:5432/gobank_auth?sslmode=disable
+      JWT_SECRET: secret
+      REDIS_URL: redis:6379
+      REDIS_PASSWORD: secret
+    depends_on:
+      postgres_auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  
+  wallet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: wallet
+    container_name: gobank_wallet
+    ports:
+      - "8081:8080"
+    environment:
+      DB_URL_WALLET: postgres://gobank:secret@postgres_wallet:5432/gobank_wallet?sslmode=disable
+      KAFKA_BROKERS: kafka:29092
+      AUTH_GRPC_ADDR: auth:9090
+    depends_on:
+      postgres_wallet:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      auth:
+        condition: service_started
+
+  notification:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: notification
+    container_name: gobank_notification
+    environment:
+      KAFKA_BROKERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    
 
 volumes:
   postgres_auth_data:

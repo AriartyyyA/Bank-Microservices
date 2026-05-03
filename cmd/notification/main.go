@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/AriartyyyA/gobank/internal/notification/consumer"
@@ -17,7 +19,8 @@ func main() {
 	)
 	defer cancel()
 
-	c := kafka.NewConsumer([]string{"localhost:9092"}, "transfers", "notification-service")
+	brokers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
+	c := kafka.NewConsumer(brokers, "transfers", "notification-service")
 	transferConsumer := consumer.NewTransferConsumer(c)
 
 	go func() {
