@@ -35,3 +35,8 @@ run-all-server:
 	go run cmd/auth/main.go
 	go run cmd/wallet/main.go
 	go run cmd/notification/main.go
+
+gen-proto:
+	protoc --go_out=. --go_opt=paths=source_relative \
+       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+       proto/auth/auth.proto

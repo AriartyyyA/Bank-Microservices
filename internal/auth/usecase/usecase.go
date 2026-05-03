@@ -72,6 +72,29 @@ func (u *AuthUseCase) Login(ctx context.Context, email, password string) (string
 	return u.generateJWT(user.UUID, user.Email)
 }
 
+func (u *AuthUseCase) ValidateToken(token string) (userID, email string, err error) {
+	parsed, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+
+		return []byte(u.jwtSecret), nil
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("parse token: %w", err)
+	}
+
+	claims, ok := parsed.Claims.(jwt.MapClaims)
+	if !ok || !parsed.Valid {
+		return "", "", fmt.Errorf("invalid token")
+	}
+
+	userID = claims["userID"].(string)
+	email = claims["email"].(string)
+
+	return userID, email, nil
+}
+
 func (u *AuthUseCase) generateJWT(userID, email string) (string, error) {
 	claims := jwt.MapClaims{
 		"userID": userID,
