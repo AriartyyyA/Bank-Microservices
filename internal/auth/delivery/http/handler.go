@@ -45,6 +45,18 @@ func (h *HandlerAuth) RegisterRoutes(router chi.Router) {
 	})
 }
 
+// Register godoc
+// @Summary      Регистрация пользователя
+// @Description  Создаёт нового пользователя
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.LoginAndRegisterRequest true "Данные пользователя"
+// @Success      201  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /auth/register [post]
 func (h *HandlerAuth) Register(w http.ResponseWriter, r *http.Request) {
 	var reqDto dto.LoginAndRegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqDto); err != nil {
@@ -71,6 +83,19 @@ func (h *HandlerAuth) Register(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, map[string]string{"status": "User created"})
 }
 
+// Login godoc
+// @Summary      Вход пользователя
+// @Description  Авторизирует пользователя и выдает jwt-токен
+// @Tags         login
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.LoginAndRegisterRequest true "Данные пользователя"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /auth/login [post]
 func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 	var reqDto dto.LoginAndRegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqDto); err != nil {

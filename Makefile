@@ -30,3 +30,8 @@ wallet_migrations:
 
 run-auth:
 	go run cmd/auth/main.go
+
+run-all-server:
+	go run cmd/auth/main.go
+	go run cmd/wallet/main.go
+	go run cmd/notification/main.go
