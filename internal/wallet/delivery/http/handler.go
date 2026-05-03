@@ -8,7 +8,6 @@ import (
 
 	"github.com/AriartyyyA/gobank/internal/wallet/delivery/http/dto"
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
-	"github.com/AriartyyyA/gobank/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
@@ -46,7 +45,7 @@ func (h *HandlerWallet) RegisterRoutes(router chi.Router) {
 }
 
 func (h *HandlerWallet) GetWalletID(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(middleware.UserIDKey).(string)
+	userID := r.Context().Value(UserIDKey).(string)
 
 	wallet, err := h.uc.GetWalletByUserID(r.Context(), userID)
 	if err != nil {
@@ -63,7 +62,7 @@ func (h *HandlerWallet) GetWalletID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(middleware.UserIDKey).(string)
+	userID := r.Context().Value(UserIDKey).(string)
 
 	wallet, err := h.uc.CreateWallet(r.Context(), userID)
 	if err != nil {
@@ -80,7 +79,7 @@ func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) DepositBalance(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(middleware.UserIDKey).(string)
+	userID := r.Context().Value(UserIDKey).(string)
 	var reqDto dto.DepositRequestDTO
 
 	if err := json.NewDecoder(r.Body).Decode(&reqDto); err != nil {
@@ -132,7 +131,7 @@ func (h *HandlerWallet) Transfer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(middleware.UserIDKey).(string)
+	userID := r.Context().Value(UserIDKey).(string)
 
 	balance, err := h.uc.GetBalanceByUserID(r.Context(), userID)
 	if err != nil {
@@ -148,7 +147,7 @@ func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerWallet) GetHistory(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(middleware.UserIDKey).(string)
+	userID := r.Context().Value(UserIDKey).(string)
 
 	history, err := h.uc.GetHistoryByUserID(r.Context(), userID)
 	if err != nil {
