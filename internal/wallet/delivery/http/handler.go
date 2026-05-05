@@ -44,6 +44,16 @@ func (h *HandlerWallet) RegisterRoutes(router chi.Router) {
 	router.Get("/wallet", h.GetWalletID)
 }
 
+// Register godoc
+// @Summary      Получение кошелька
+// @Description  Возвращает информацию о кошельке по userID по JWT
+// @Tags         wallet
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /wallet [get]
 func (h *HandlerWallet) GetWalletID(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserIDKey).(string)
 
@@ -61,6 +71,16 @@ func (h *HandlerWallet) GetWalletID(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, wallet)
 }
 
+// Register godoc
+// @Summary      Создание кошелька
+// @Description  Создаёт кошелек для пользователя
+// @Tags         wallet
+// @Accept       json
+// @Produce      json
+// @Success      201  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /wallets [post]
 func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserIDKey).(string)
 
@@ -78,6 +98,17 @@ func (h *HandlerWallet) CreateWallet(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, wallet)
 }
 
+// Register godoc
+// @Summary      Пополнение баланса
+// @Description  Пополняем баланс пользователя
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.DepositRequestDTO true "Данные пополнения"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /wallets/deposit [post]
 func (h *HandlerWallet) DepositBalance(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserIDKey).(string)
 	var reqDto dto.DepositRequestDTO
@@ -96,6 +127,17 @@ func (h *HandlerWallet) DepositBalance(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]int64{"amount": amount})
 }
 
+// Register godoc
+// @Summary      Создание перевода
+// @Description  Создаем перевод с данными
+// @Tags         wallet
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.TransferRequestDTO true "Данные перевода"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /wallets/transfer [post]
 func (h *HandlerWallet) Transfer(w http.ResponseWriter, r *http.Request) {
 	var transfer dto.TransferRequestDTO
 
@@ -130,6 +172,16 @@ func (h *HandlerWallet) Transfer(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"transfer status": "ok"})
 }
 
+// Register godoc
+// @Summary      Получение баланса
+// @Description  получаем баланс пользователя по id
+// @Tags         wallet
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /wallets/me [get]
 func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserIDKey).(string)
 
@@ -146,6 +198,16 @@ func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]int64{"balance": balance})
 }
 
+// Register godoc
+// @Summary      История переводов
+// @Description  Получаем историю переводов
+// @Tags         wallet
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /wallet/history [get]
 func (h *HandlerWallet) GetHistory(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(UserIDKey).(string)
 

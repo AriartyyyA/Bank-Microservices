@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 func init() {
@@ -26,6 +27,14 @@ func init() {
 	}
 }
 
+// @title Bank Wallet API
+// @version 1.0
+// @description Сервис переводов и кошельков
+// @host localhost:8080
+// @BasePath /wallet
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Wallet
 func main() {
 	ctx, cancel := signal.NotifyContext(
 		context.Background(),
@@ -56,6 +65,9 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(transport.GRPCAuthMiddleware(authClient))
+	router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	))
 	handlers.RegisterRoutes(router)
 
 	httpServer := &http.Server{
