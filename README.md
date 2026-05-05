@@ -4,6 +4,8 @@
 
 ## Архитектура
 
+![alt text](figures/diagram.jpg)
+
 ```
 ┌─────────────┐     HTTP      ┌─────────────────┐     gRPC      ┌─────────────────┐
 │   Client    │ ───────────►  │  auth-service   │ ◄──────────── │ wallet-service  │
