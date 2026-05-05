@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	_ "github.com/AriartyyyA/gobank/docs/auth"
@@ -38,10 +40,17 @@ func init() {
 // @in header
 // @name Authorization
 func main() {
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGTERM, syscall.SIGINT,
+	)
+	defer cancel()
+
 	pool, err := pgxpool.New(context.Background(), os.Getenv("DB_URL"))
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer pool.Close()
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 
@@ -49,26 +58,31 @@ func main() {
 		Addr:     os.Getenv("REDIS_URL"),
 		Password: os.Getenv("REDIS_PASSWORD"),
 	})
+	defer redisClient.Close()
+
 	rate := ratelimit.NewRateLimit(redisClient, 100, time.Minute)
 
 	repo := pg_repo.NewPostgresRepo(pool)
 	uc := usecase.NewAuthUseCase(repo, jwtSecret)
 
+	// grpc server
 	grpcServer := grpc.NewServer()
 	authGrpc := grpcDelivery.NewAuthGRPCServer(uc)
 	pb.RegisterAuthServiceServer(grpcServer, authGrpc)
 
+	lis, err := net.Listen("tcp", ":9090")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	go func() {
-		lis, err := net.Listen("tcp", ":9090")
-		if err != nil {
-			log.Fatal(err)
-		}
 		log.Println("gRPC server started on :9090")
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatal(err)
+			log.Printf("gRPC server error: %v", err)
 		}
 	}()
 
+	// server
 	handlers := transport.NewHandlerAuth(uc, jwtSecret)
 
 	router := chi.NewRouter()
@@ -78,7 +92,32 @@ func main() {
 	))
 	handlers.RegisterRoutes(router)
 
-	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Fatal(err)
+	httpServer := &http.Server{
+		Addr:    ":8080",
+		Handler: router,
 	}
+
+	go func() {
+		log.Println("HTTP server started on :8080")
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("HTTP server error: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("shutting down")
+
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+	defer cancel()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("HTTP shutdown error: %v", err)
+	}
+
+	grpcServer.GracefulStop()
+
+	log.Println("servers stopped gracefully")
 }
