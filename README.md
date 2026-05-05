@@ -78,8 +78,6 @@ migrate -path migrations/wallet \
   -database "postgres://gobank:secret@localhost:5433/gobank_wallet?sslmode=disable" up
 ```
 
-```
-
 ## API
 
 ### Auth Service (localhost:8080)
