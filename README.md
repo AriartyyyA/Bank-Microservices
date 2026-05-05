@@ -10,11 +10,11 @@
  
 | Слой | Технология |
 |------|-----------|
-| Язык | Go 1.22 |
+| Язык | 1.25.6 |
 | HTTP | Chi |
 | БД | PostgreSQL 16 + pgx |
 | Миграции | golang-migrate |
-| Кэш / Rate limiting | Redis 7 |
+| Кэш / Rate limiting | Redis  |
 | Очередь | Kafka |
 | Межсервисная коммуникация | gRPC + Protobuf |
 | Авторизация | JWT |
