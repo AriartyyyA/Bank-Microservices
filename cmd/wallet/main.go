@@ -5,7 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	transport "github.com/AriartyyyA/gobank/internal/wallet/delivery/http"
 	grpcClient "github.com/AriartyyyA/gobank/internal/wallet/grpc"
@@ -24,15 +27,25 @@ func init() {
 }
 
 func main() {
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGTERM, syscall.SIGINT,
+	)
+	defer cancel()
+
 	pool, err := pgxpool.New(context.Background(), os.Getenv("DB_URL_WALLET"))
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer pool.Close()
 
 	brokers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
 
 	repo := pg_repo.NewPostgresRepo(pool)
+
 	producer := kafka.NewProducer(brokers, "transfers")
+	defer producer.Close()
+
 	uc := usecase.NewWalletUseCase(repo, producer)
 	handlers := transport.NewHandlerWallet(uc)
 
@@ -45,7 +58,30 @@ func main() {
 	router.Use(transport.GRPCAuthMiddleware(authClient))
 	handlers.RegisterRoutes(router)
 
-	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Fatal(err)
+	httpServer := &http.Server{
+		Addr:    ":8080",
+		Handler: router,
 	}
+
+	go func() {
+		log.Println("HTTP server started on :8080")
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("HTTP server error: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("shutting down")
+
+	shutdownCtx, cancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+	defer cancel()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("HTTP shutdown error: %v", err)
+	}
+
+	log.Println("server stopped gracefully")
 }
