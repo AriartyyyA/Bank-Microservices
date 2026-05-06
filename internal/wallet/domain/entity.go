@@ -27,6 +27,6 @@ type WalletRepository interface {
 	FindWalletByUserID(ctx context.Context, userID string) (*Wallet, error)
 	UpdateBalance(ctx context.Context, walletID string, amount int64) error
 	CreateTransaction(ctx context.Context, transaction Transaction) error
-	GetTransactionsByWalletID(ctx context.Context, walletID string, limit string, offset string) ([]*Transaction, error)
+	GetTransactionsByWalletID(ctx context.Context, walletID string, limit, offset int) ([]*Transaction, error)
 	WithTx(ctx context.Context, fn func(ctx context.Context) error) error
 }

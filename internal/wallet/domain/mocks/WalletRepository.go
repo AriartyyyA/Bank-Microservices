@@ -111,7 +111,7 @@ func (_m *WalletRepository) FindWalletByUserID(ctx context.Context, userID strin
 }
 
 // GetTransactionsByWalletID provides a mock function with given fields: ctx, walletID, limit, offset
-func (_m *WalletRepository) GetTransactionsByWalletID(ctx context.Context, walletID string, limit string, offset string) ([]*domain.Transaction, error) {
+func (_m *WalletRepository) GetTransactionsByWalletID(ctx context.Context, walletID string, limit int, offset int) ([]*domain.Transaction, error) {
 	ret := _m.Called(ctx, walletID, limit, offset)
 
 	if len(ret) == 0 {
@@ -120,10 +120,10 @@ func (_m *WalletRepository) GetTransactionsByWalletID(ctx context.Context, walle
 
 	var r0 []*domain.Transaction
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) ([]*domain.Transaction, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, int) ([]*domain.Transaction, error)); ok {
 		return rf(ctx, walletID, limit, offset)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) []*domain.Transaction); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, int) []*domain.Transaction); ok {
 		r0 = rf(ctx, walletID, limit, offset)
 	} else {
 		if ret.Get(0) != nil {
@@ -131,7 +131,7 @@ func (_m *WalletRepository) GetTransactionsByWalletID(ctx context.Context, walle
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, int) error); ok {
 		r1 = rf(ctx, walletID, limit, offset)
 	} else {
 		r1 = ret.Error(1)

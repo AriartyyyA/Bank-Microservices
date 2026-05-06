@@ -124,7 +124,7 @@ func (uc *WalletUseCase) GetBalanceByUserID(ctx context.Context, userID string) 
 	return wallet.Balance, nil
 }
 
-func (uc *WalletUseCase) GetHistoryByUserID(ctx context.Context, userID string, limit, offset string) ([]*domain.Transaction, error) {
+func (uc *WalletUseCase) GetHistoryByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Transaction, error) {
 	wallet, err := uc.repo.FindWalletByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("find wallet error: %w", err)

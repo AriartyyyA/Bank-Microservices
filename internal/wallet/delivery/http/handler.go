@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/AriartyyyA/gobank/internal/wallet/delivery/http/dto"
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
@@ -16,7 +17,7 @@ type WalletUseCase interface {
 	CreateWallet(ctx context.Context, userID string) (*domain.Wallet, error)
 	Transfer(ctx context.Context, fromWalletID, toWalletID string, amount int64) error
 	GetBalance(ctx context.Context, walletID string) (int64, error)
-	GetHistoryByUserID(ctx context.Context, userID string, limit, offset string) ([]*domain.Transaction, error)
+	GetHistoryByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Transaction, error)
 	GetBalanceByUserID(ctx context.Context, userID string) (int64, error)
 	UpdateBalance(ctx context.Context, userID string, amount int64) (int64, error)
 	GetWalletByUserID(ctx context.Context, userID string) (*domain.Wallet, error)
@@ -214,9 +215,23 @@ func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
 // @Router       /wallet/history [get]
 // @Security BearerAuth
 func (h *HandlerWallet) GetHistory(w http.ResponseWriter, r *http.Request) {
-	queryParams := r.URL.Query()
-	limit := queryParams.Get("limit")
-	offset := queryParams.Get("offset")
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 10
+	offset := 0
+	if limitStr != "" {
+		val, err := strconv.Atoi(limitStr)
+		if err == nil && val > 0 {
+			limit = val
+		}
+	}
+	if offsetStr != "" {
+		val, err := strconv.Atoi(offsetStr)
+		if err == nil && val > 0 {
+			offset = val
+		}
+	}
 
 	userID := r.Context().Value(UserIDKey).(string)
 

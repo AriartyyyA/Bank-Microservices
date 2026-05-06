@@ -117,7 +117,7 @@ func (r *PostgresRepo) UpdateBalance(ctx context.Context, walletID string, amoun
 	return nil
 }
 
-func (r *PostgresRepo) GetTransactionsByWalletID(ctx context.Context, walletID string, limit string, offset string) ([]*domain.Transaction, error) {
+func (r *PostgresRepo) GetTransactionsByWalletID(ctx context.Context, walletID string, limit, offset int) ([]*domain.Transaction, error) {
 	query := `SELECT id, from_wallet_id, to_wallet_id, amount, created_at 
 		FROM transactions
 		WHERE from_wallet_id = $1 OR to_wallet_id = $1
