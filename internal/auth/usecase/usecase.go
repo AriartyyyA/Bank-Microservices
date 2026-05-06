@@ -109,6 +109,36 @@ func (u *AuthUseCase) ValidateToken(token string) (userID, email string, err err
 	return userID, email, nil
 }
 
+func (u *AuthUseCase) RefreshToken(ctx context.Context, refreshToken string) (string, error) {
+	userID, err := u.r.Get(ctx, "refresh:"+refreshToken).Result()
+	if err == redis.Nil {
+		return "", domain.ErrInvalidRefreshToken
+	}
+	if err != nil {
+		return "", fmt.Errorf("get refresh token: %w", err)
+	}
+
+	user, err := u.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("get user error: %w", err)
+	}
+
+	accessToken, err := u.generateJWT(user.UUID, user.Email)
+	if err != nil {
+		return "", fmt.Errorf("generate access token error: %w", err)
+	}
+
+	return accessToken, nil
+}
+
+func (u *AuthUseCase) Logout(ctx context.Context, refreshToken string) error {
+	if err := u.r.Del(ctx, "refresh:"+refreshToken).Err(); err != nil {
+		return fmt.Errorf("delete refresh token: %w", err)
+	}
+
+	return nil
+}
+
 func (u *AuthUseCase) generateJWT(userID, email string) (string, error) {
 	claims := jwt.MapClaims{
 		"userID": userID,

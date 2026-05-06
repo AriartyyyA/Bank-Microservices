@@ -63,7 +63,7 @@ func main() {
 	rate := ratelimit.NewRateLimit(redisClient, 100, time.Minute)
 
 	repo := pg_repo.NewPostgresRepo(pool)
-	uc := usecase.NewAuthUseCase(repo, jwtSecret)
+	uc := usecase.NewAuthUseCase(repo, jwtSecret, redisClient)
 
 	// grpc server
 	grpcServer := grpc.NewServer()

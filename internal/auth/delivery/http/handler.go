@@ -109,7 +109,7 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	access_token, refresh_token, err := h.uc.Login(r.Context(), reqDto.Email, reqDto.Password)
+	accessToken, refreshToken, err := h.uc.Login(r.Context(), reqDto.Email, reqDto.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			respondError(w, http.StatusNotFound, "User not found")
@@ -125,8 +125,8 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := dto.LoginResponse{
-		AccessToken:  access_token,
-		RefreshToken: refresh_token,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}
 
 	respondJSON(w, http.StatusOK, resp)
