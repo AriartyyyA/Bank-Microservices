@@ -117,12 +117,13 @@ func (r *PostgresRepo) UpdateBalance(ctx context.Context, walletID string, amoun
 	return nil
 }
 
-func (r *PostgresRepo) GetTransactionsByWalletID(ctx context.Context, walletID string) ([]*domain.Transaction, error) {
+func (r *PostgresRepo) GetTransactionsByWalletID(ctx context.Context, walletID string, limit string, offset string) ([]*domain.Transaction, error) {
 	query := `SELECT id, from_wallet_id, to_wallet_id, amount, created_at 
 		FROM transactions
-		WHERE from_wallet_id = $1 OR to_wallet_id = $1`
+		WHERE from_wallet_id = $1 OR to_wallet_id = $1
+		LIMIT $2 OFFSET $3`
 
-	rows, err := r.getConn(ctx).Query(ctx, query, walletID)
+	rows, err := r.getConn(ctx).Query(ctx, query, walletID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("query transactions: %w", err)
 	}

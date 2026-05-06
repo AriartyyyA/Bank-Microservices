@@ -124,22 +124,13 @@ func (uc *WalletUseCase) GetBalanceByUserID(ctx context.Context, userID string) 
 	return wallet.Balance, nil
 }
 
-func (uc *WalletUseCase) GetHistory(ctx context.Context, walletID string) ([]*domain.Transaction, error) {
-	transactions, err := uc.repo.GetTransactionsByWalletID(ctx, walletID)
-	if err != nil {
-		return nil, fmt.Errorf("get transactions: %w", err)
-	}
-
-	return transactions, nil
-}
-
-func (uc *WalletUseCase) GetHistoryByUserID(ctx context.Context, userID string) ([]*domain.Transaction, error) {
+func (uc *WalletUseCase) GetHistoryByUserID(ctx context.Context, userID string, limit, offset string) ([]*domain.Transaction, error) {
 	wallet, err := uc.repo.FindWalletByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("find wallet error: %w", err)
 	}
 
-	transactions, err := uc.repo.GetTransactionsByWalletID(ctx, wallet.ID)
+	transactions, err := uc.repo.GetTransactionsByWalletID(ctx, wallet.ID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get transactions: %w", err)
 	}

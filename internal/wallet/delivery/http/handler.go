@@ -16,8 +16,7 @@ type WalletUseCase interface {
 	CreateWallet(ctx context.Context, userID string) (*domain.Wallet, error)
 	Transfer(ctx context.Context, fromWalletID, toWalletID string, amount int64) error
 	GetBalance(ctx context.Context, walletID string) (int64, error)
-	GetHistory(ctx context.Context, walletID string) ([]*domain.Transaction, error)
-	GetHistoryByUserID(ctx context.Context, userID string) ([]*domain.Transaction, error)
+	GetHistoryByUserID(ctx context.Context, userID string, limit, offset string) ([]*domain.Transaction, error)
 	GetBalanceByUserID(ctx context.Context, userID string) (int64, error)
 	UpdateBalance(ctx context.Context, userID string, amount int64) (int64, error)
 	GetWalletByUserID(ctx context.Context, userID string) (*domain.Wallet, error)
@@ -215,9 +214,13 @@ func (h *HandlerWallet) GetBalance(w http.ResponseWriter, r *http.Request) {
 // @Router       /wallet/history [get]
 // @Security BearerAuth
 func (h *HandlerWallet) GetHistory(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	limit := queryParams.Get("limit")
+	offset := queryParams.Get("offset")
+
 	userID := r.Context().Value(UserIDKey).(string)
 
-	history, err := h.uc.GetHistoryByUserID(r.Context(), userID)
+	history, err := h.uc.GetHistoryByUserID(r.Context(), userID, limit, offset)
 	if err != nil {
 		if errors.Is(err, domain.ErrWalletNotFound) {
 			respondError(w, http.StatusNotFound, "wallet not found")
