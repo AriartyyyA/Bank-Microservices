@@ -35,7 +35,7 @@ func init() {
 // @BasePath /
 // @securityDefinitions.apikey BearerAuth
 // @in header
-// @name Wallet
+// @name Authorization
 func main() {
 	ctx, cancel := signal.NotifyContext(
 		context.Background(),

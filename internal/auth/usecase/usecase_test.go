@@ -62,10 +62,11 @@ func TestAuthUseCase_Login_Success(t *testing.T) {
 	mockRepo.On("GetUserByEmail", mock.Anything, "test@test.com").Return(user, nil)
 
 	uc := usecase.NewAuthUseCase(mockRepo, "secret")
-	token, err := uc.Login(context.Background(), "test@test.com", "password123")
+	accessToken, refreshToken, err := uc.Login(context.Background(), "test@test.com", "password123")
 
 	assert.NoError(t, err)
-	assert.NotEmpty(t, token)
+	assert.NotEmpty(t, accessToken)
+	assert.NotEmpty(t, refreshToken)
 }
 
 func TestAuthUserCase_Login_UserNotFound(t *testing.T) {
@@ -74,7 +75,7 @@ func TestAuthUserCase_Login_UserNotFound(t *testing.T) {
 	mockRepo.On("GetUserByEmail", mock.Anything, "test@test.com").Return(nil, domain.ErrUserNotFound)
 
 	uc := usecase.NewAuthUseCase(mockRepo, "secret")
-	_, err := uc.Login(context.Background(), "test@test.com", "password123")
+	_, _, err := uc.Login(context.Background(), "test@test.com", "password123")
 
 	assert.ErrorIs(t, err, domain.ErrUserNotFound)
 }
@@ -91,7 +92,7 @@ func TestAuthUserCase_Login_WrongPassword(t *testing.T) {
 	mockRepo.On("GetUserByEmail", mock.Anything, "test@test.com").Return(user, nil)
 
 	uc := usecase.NewAuthUseCase(mockRepo, "secret")
-	_, err := uc.Login(context.Background(), "test@test.com", "wrong")
+	_, _, err := uc.Login(context.Background(), "test@test.com", "password123")
 
 	assert.ErrorIs(t, err, domain.ErrWrongPassword)
 }

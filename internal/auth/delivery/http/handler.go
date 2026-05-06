@@ -18,6 +18,8 @@ type AuthUserCase interface {
 	Register(ctx context.Context, email, password string) error
 	Login(ctx context.Context, email, password string) (accessToken, refreshToken string, err error)
 	ValidateToken(token string) (userID, email string, err error)
+	RefreshToken(ctx context.Context, refreshToken string) (string, error)
+	Logout(ctx context.Context, refreshToken string) error
 }
 
 type HandlerAuth struct {
@@ -38,6 +40,8 @@ func (h *HandlerAuth) RegisterRoutes(router chi.Router) {
 	// Публичные роуты, без мидлвари
 	router.Post("/auth/register", h.Register)
 	router.Post("/auth/login", h.Login)
+	router.Post("/auth/refresh", h.RefreshToken)
+	router.Post("/auth/logout", h.Logout)
 
 	// защищенные роуты
 	router.Group(func(r chi.Router) {
@@ -135,4 +139,40 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerAuth) Me(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(string)
 	respondJSON(w, http.StatusOK, map[string]string{"user_id": userID})
+}
+
+func (h *HandlerAuth) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var req dto.RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Incorrect data")
+		return
+	}
+
+	accessToken, err := h.uc.RefreshToken(r.Context(), req.RefreshToken)
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidRefreshToken) {
+			respondError(w, http.StatusBadRequest, "invalid refresh token")
+			return
+		}
+
+		respondError(w, http.StatusInternalServerError, "server error")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, dto.LoginResponse{AccessToken: accessToken})
+}
+
+func (h *HandlerAuth) Logout(w http.ResponseWriter, r *http.Request) {
+	var req dto.RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Incorrect data")
+		return
+	}
+
+	if err := h.uc.Logout(r.Context(), req.RefreshToken); err != nil {
+		respondError(w, http.StatusBadRequest, "logout error")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "logout"})
 }
