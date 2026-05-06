@@ -1,0 +1,331 @@
+basePath: /
+definitions:
+  dto.DepositRequestDTO:
+    properties:
+      amount:
+        type: integer
+    type: object
+  dto.LoginAndRegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.TransferRequestDTO:
+    properties:
+      amount:
+        type: integer
+      from_wallet_id:
+        type: string
+      to_wallet_id:
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: Сервис переводов и кошельков
+  title: Bank Wallet API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизирует пользователя и выдает jwt-токен
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginAndRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Вход пользователя
+      tags:
+      - login
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт нового пользователя
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginAndRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация пользователя
+      tags:
+      - auth
+  /wallet:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о кошельке по userID по JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение кошелька
+      tags:
+      - wallet
+  /wallet/history:
+    get:
+      consumes:
+      - application/json
+      description: Получаем историю переводов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: История переводов
+      tags:
+      - wallet
+  /wallets:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт кошелек для пользователя
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание кошелька
+      tags:
+      - wallet
+  /wallets/deposit:
+    post:
+      consumes:
+      - application/json
+      description: Пополняем баланс пользователя
+      parameters:
+      - description: Данные пополнения
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DepositRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Пополнение баланса
+      tags:
+      - wallet
+  /wallets/me:
+    get:
+      consumes:
+      - application/json
+      description: получаем баланс пользователя по id
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение баланса
+      tags:
+      - wallet
+  /wallets/transfer:
+    post:
+      consumes:
+      - application/json
+      description: Создаем перевод с данными
+      parameters:
+      - description: Данные перевода
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TransferRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание перевода
+      tags:
+      - wallet
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Wallet
+    type: apiKey
+swagger: "2.0"

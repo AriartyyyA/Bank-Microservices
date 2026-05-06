@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/AriartyyyA/gobank/docs/wallet"
 	transport "github.com/AriartyyyA/gobank/internal/wallet/delivery/http"
 	grpcClient "github.com/AriartyyyA/gobank/internal/wallet/grpc"
 	pg_repo "github.com/AriartyyyA/gobank/internal/wallet/repository/pg"
@@ -30,8 +31,8 @@ func init() {
 // @title Bank Wallet API
 // @version 1.0
 // @description Сервис переводов и кошельков
-// @host localhost:8080
-// @BasePath /wallet
+// @host localhost:8081
+// @BasePath /
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Wallet
@@ -66,7 +67,7 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(transport.GRPCAuthMiddleware(authClient))
 	router.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+		httpSwagger.URL("http://localhost:8081/swagger/doc.json"),
 	))
 	handlers.RegisterRoutes(router)
 
