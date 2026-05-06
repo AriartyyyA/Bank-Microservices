@@ -16,7 +16,7 @@ import (
 
 type AuthUserCase interface {
 	Register(ctx context.Context, email, password string) error
-	Login(ctx context.Context, email, password string) (string, error)
+	Login(ctx context.Context, email, password string) (accessToken, refreshToken string, err error)
 	ValidateToken(token string) (userID, email string, err error)
 }
 
@@ -109,7 +109,7 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.uc.Login(r.Context(), reqDto.Email, reqDto.Password)
+	access_token, refresh_token, err := h.uc.Login(r.Context(), reqDto.Email, reqDto.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			respondError(w, http.StatusNotFound, "User not found")
@@ -125,7 +125,8 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := dto.LoginResponse{
-		Token: token,
+		AccessToken:  access_token,
+		RefreshToken: refresh_token,
 	}
 
 	respondJSON(w, http.StatusOK, resp)

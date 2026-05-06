@@ -9,18 +9,21 @@ import (
 	"github.com/AriartyyyA/gobank/internal/auth/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthUseCase struct {
 	repo      domain.UserRepository
 	jwtSecret string
+	r         *redis.Client
 }
 
-func NewAuthUseCase(repo domain.UserRepository, jwtSecret string) *AuthUseCase {
+func NewAuthUseCase(repo domain.UserRepository, jwtSecret string, r *redis.Client) *AuthUseCase {
 	return &AuthUseCase{
 		repo:      repo,
 		jwtSecret: jwtSecret,
+		r:         r,
 	}
 }
 
@@ -55,21 +58,32 @@ func (u *AuthUseCase) Register(ctx context.Context, email, password string) erro
 	return nil
 }
 
-func (u *AuthUseCase) Login(ctx context.Context, email, password string) (string, error) {
+func (u *AuthUseCase) Login(ctx context.Context, email, password string) (accessToken, refreshToken string, err error) {
 	user, err := u.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			return "", domain.ErrUserNotFound
+			return "", "", domain.ErrUserNotFound
 		}
 
-		return "", fmt.Errorf("get user: %w", err)
+		return "", "", fmt.Errorf("get user: %w", err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", fmt.Errorf("wrong password: %w", domain.ErrWrongPassword)
+		return "", "", fmt.Errorf("wrong password: %w", domain.ErrWrongPassword)
 	}
 
-	return u.generateJWT(user.UUID, user.Email)
+	accessToken, err = u.generateJWT(user.UUID, user.Email)
+	if err != nil {
+		return "", "", fmt.Errorf("generate access token error: %w", err)
+	}
+
+	refreshToken = uuid.New().String()
+	err = u.r.SetEx(ctx, "refresh:"+refreshToken, user.UUID, 7*24*time.Hour).Err()
+	if err != nil {
+		return "", "", fmt.Errorf("save refresh token: %w", err)
+	}
+
+	return accessToken, refreshToken, nil
 }
 
 func (u *AuthUseCase) ValidateToken(token string) (userID, email string, err error) {
