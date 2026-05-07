@@ -15,6 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+    - gobank
 
   postgres_wallet:
     image: postgres:16-alpine
@@ -32,6 +34,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+    - gobank
 
   redis:
     image: redis:7-alpine
@@ -44,6 +48,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+    - gobank
 
   mailhog:
     image: mailhog/mailhog:latest
@@ -51,7 +57,8 @@ services:
     ports:
       - "8025:8025"
       - "1025:1025"
-
+    networks:
+    - gobank
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
     container_name: gobank-zookeeper
@@ -60,6 +67,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+    - gobank
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -80,6 +89,8 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    networks:
+    - gobank
 
   auth:
     build:
@@ -101,7 +112,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-  
+    networks:
+      - gobank
+
   wallet:
     build:
       context: .
@@ -122,6 +135,8 @@ services:
         condition: service_healthy
       auth:
         condition: service_started
+    networks:
+      - gobank
 
   notification:
     build:
@@ -135,8 +150,40 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-    
+    networks:
+    - gobank    
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: gobank-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - auth
+      - wallet
+    networks:
+      - gobank
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: gobank-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+    - gobank
+networks:
+  gobank:
+    driver: bridge
 
 volumes:
   postgres_auth_data:
   postgres_wallet_data:
+  grafana_data:

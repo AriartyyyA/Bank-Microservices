@@ -15,11 +15,13 @@ import (
 	transport "github.com/AriartyyyA/gobank/internal/auth/delivery/http"
 	pg_repo "github.com/AriartyyyA/gobank/internal/auth/repository/pg"
 	"github.com/AriartyyyA/gobank/internal/auth/usecase"
+	"github.com/AriartyyyA/gobank/pkg/metrics"
 	"github.com/AriartyyyA/gobank/pkg/ratelimit"
 	pb "github.com/AriartyyyA/gobank/proto/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"google.golang.org/grpc"
@@ -87,9 +89,11 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(ratelimit.Middleware(rate))
+	router.Use(metrics.Middleware)
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
 	))
+	router.Handle("/metrics", promhttp.Handler())
 	handlers.RegisterRoutes(router)
 
 	httpServer := &http.Server{

@@ -16,9 +16,11 @@ import (
 	pg_repo "github.com/AriartyyyA/gobank/internal/wallet/repository/pg"
 	"github.com/AriartyyyA/gobank/internal/wallet/usecase"
 	"github.com/AriartyyyA/gobank/pkg/kafka"
+	"github.com/AriartyyyA/gobank/pkg/metrics"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -65,11 +67,16 @@ func main() {
 	}
 
 	router := chi.NewRouter()
-	router.Use(transport.GRPCAuthMiddleware(authClient))
+	router.Use(metrics.Middleware)
+	router.Handle("/metrics", promhttp.Handler())
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8081/swagger/doc.json"),
 	))
-	handlers.RegisterRoutes(router)
+
+	router.Group(func(r chi.Router) {
+		r.Use(transport.GRPCAuthMiddleware(authClient))
+		handlers.RegisterRoutes(r)
+	})
 
 	httpServer := &http.Server{
 		Addr:    ":8080",
