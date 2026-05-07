@@ -70,7 +70,10 @@ func (h *HandlerAuth) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validate.Struct(reqDto); err != nil {
-		respondError(w, http.StatusBadRequest, "Bad email or password")
+		if respondValidationError(w, err) {
+			return
+		}
+		respondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -109,7 +112,10 @@ func (h *HandlerAuth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validate.Struct(reqDto); err != nil {
-		respondError(w, http.StatusBadRequest, "Bad email or password")
+		if respondValidationError(w, err) {
+			return
+		}
+		respondError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -175,4 +181,38 @@ func (h *HandlerAuth) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"status": "logout"})
+}
+
+func messageForTag(tag string) string {
+	switch tag {
+	case "required":
+		return "field is required"
+	case "email":
+		return "must be a valid email"
+	case "min":
+		return "value is too short"
+	case "max":
+		return "value is too long"
+	default:
+		return "invalid value"
+	}
+}
+
+func respondValidationError(w http.ResponseWriter, err error) bool {
+	var validationErrors validator.ValidationErrors
+	if errors.As(err, &validationErrors) {
+		details := make([]map[string]string, 0)
+		for _, e := range validationErrors {
+			details = append(details, map[string]string{
+				"field":   e.Field(),
+				"message": messageForTag(e.Tag()),
+			})
+		}
+		respondJSON(w, http.StatusUnprocessableEntity, map[string]any{
+			"error":   "validation failed",
+			"details": details,
+		})
+		return true
+	}
+	return false
 }
