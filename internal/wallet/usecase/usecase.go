@@ -107,9 +107,14 @@ func (uc *WalletUseCase) Transfer(ctx context.Context, fromWalletID, toWalletID 
 			Amount:        amount,
 		})
 
+		span.SetAttributes(attribute.String("transfer.transaction_id", id))
+
 		if err := uc.producer.Publish(ctx, id, eventData); err != nil {
+			span.RecordError(err)
+			span.SetAttributes(attribute.Bool("transfer.kafka_publish_failed", true))
 			return err
 		}
+		span.AddEvent("kafka.transfer.published")
 
 		return nil
 	})

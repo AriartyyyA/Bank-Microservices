@@ -9,6 +9,7 @@ import (
 	"github.com/AriartyyyA/gobank/pkg/kafka"
 	"github.com/AriartyyyA/gobank/pkg/kafka/events"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type TransferConsumer struct {
@@ -30,10 +31,23 @@ func (c *TransferConsumer) Start(ctx context.Context) error {
 
 		var event events.TransferEvent
 		if err := json.Unmarshal(message.Value, &event); err != nil {
+			span.RecordError(err)
+			span.SetAttributes(attribute.Bool("message.unmarshal_failed", true))
+
 			log.Printf("failed to unmarshall event: %v", err)
 			span.End()
 			continue
 		}
+
+		span.SetAttributes(
+			attribute.String("transfer.transaction_id", event.TransactionID),
+			attribute.String("transfer.from_wallet_id", event.FromWalletID),
+			attribute.String("transfer.to_wallet_id", event.ToWalletID),
+			attribute.Int64("transfer.amount", event.Amount),
+			attribute.String("messaging.system", "kafka"),
+			attribute.String("messaging.destination", "transfers"),
+		)
+		span.AddEvent("notification.transfer.received")
 
 		log.Printf("transfer event: from=%s to=%s amount=%d",
 			event.FromWalletID, event.ToWalletID, event.Amount)
