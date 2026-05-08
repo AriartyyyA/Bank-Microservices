@@ -76,6 +76,10 @@ func main() {
 	router.Use(otelchi.Middleware("wallet-service"))
 	router.Use(metrics.Middleware)
 	router.Handle("/metrics", promhttp.Handler())
+	router.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8081/swagger/doc.json"),
 	))
@@ -109,7 +113,7 @@ func main() {
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		log.Printf("HTTP shutdown error: %v", err)
 	}
-	if err := tracingShutdown(ctx); err != nil {
+	if err := tracingShutdown(shutdownCtx); err != nil {
 		log.Printf("tracing shutdown error: %v", err)
 	}
 

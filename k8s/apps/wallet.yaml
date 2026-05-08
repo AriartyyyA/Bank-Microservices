@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet
+  namespace: gobank
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wallet
+  template:
+    metadata:
+      labels:
+        app: wallet
+    spec:
+      containers:
+        - name: wallet
+          image: gobank/wallet:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DB_URL_WALLET
+              valueFrom:
+                configMapKeyRef:
+                  name: gobank-app-config
+                  key: DB_URL_WALLET
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: gobank-app-config
+                  key: KAFKA_BROKERS
+            - name: AUTH_GRPC_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: gobank-app-config
+                  key: AUTH_GRPC_ADDR
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: gobank-app-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              valueFrom:
+                configMapKeyRef:
+                  name: gobank-app-config
+                  key: OTEL_EXPORTER_OTLP_INSECURE
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet
+  namespace: gobank
+spec:
+  selector:
+    app: wallet
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"os"
+	"strconv"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -14,15 +15,29 @@ import (
 )
 
 func Init(ctx context.Context, serviceName string) (func(context.Context) error, error) {
-	endpoint := os.Getenv("JAEGER_ENDPOINT")
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		endpoint = os.Getenv("JAEGER_ENDPOINT")
+	}
 	if endpoint == "" {
 		endpoint = "localhost:4317"
+	}
+	insecure := true
+	if value := os.Getenv("OTEL_EXPORTER_OTLP_INSECURE"); value != "" {
+		parsed, err := strconv.ParseBool(value)
+		if err == nil {
+			insecure = parsed
+		}
+	}
+
+	clientOptions := []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(endpoint)}
+	if insecure {
+		clientOptions = append(clientOptions, otlptracegrpc.WithInsecure())
 	}
 
 	exp, err := otlptracegrpc.New(
 		ctx,
-		otlptracegrpc.WithEndpoint(endpoint),
-		otlptracegrpc.WithInsecure(),
+		clientOptions...,
 	)
 	if err != nil {
 		return nil, err

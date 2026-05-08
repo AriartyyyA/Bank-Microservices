@@ -104,6 +104,10 @@ func main() {
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
 	))
+	router.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
 	router.Handle("/metrics", promhttp.Handler())
 	handlers.RegisterRoutes(router)
 
@@ -127,7 +131,7 @@ func main() {
 		10*time.Second,
 	)
 	defer cancel()
-	if err := tracingShutdown(ctx); err != nil {
+	if err := tracingShutdown(shutdownCtx); err != nil {
 		log.Printf("tracing shutdown error: %v", err)
 	}
 

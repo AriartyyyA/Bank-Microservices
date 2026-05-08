@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gobank-app-config
+  namespace: gobank
+data:
+  DB_URL: postgres://gobank:secret@postgres-auth:5432/gobank_auth?sslmode=disable
+  DB_URL_WALLET: postgres://gobank:secret@postgres-wallet:5432/gobank_wallet?sslmode=disable
+  REDIS_URL: redis:6379
+  KAFKA_BROKERS: kafka:9092
+  AUTH_GRPC_ADDR: auth:9090
+  OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+  OTEL_EXPORTER_OTLP_INSECURE: "true"
