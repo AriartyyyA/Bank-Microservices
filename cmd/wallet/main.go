@@ -17,10 +17,12 @@ import (
 	"github.com/AriartyyyA/gobank/internal/wallet/usecase"
 	"github.com/AriartyyyA/gobank/pkg/kafka"
 	"github.com/AriartyyyA/gobank/pkg/metrics"
+	"github.com/AriartyyyA/gobank/pkg/tracing"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/riandyrn/otelchi"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -45,6 +47,11 @@ func main() {
 	)
 	defer cancel()
 
+	tracingShutdown, err := tracing.Init(ctx, "wallet-service")
+	if err != nil {
+		log.Fatalf("tracing error: %v", err)
+	}
+
 	pool, err := pgxpool.New(context.Background(), os.Getenv("DB_URL_WALLET"))
 	if err != nil {
 		log.Fatal(err)
@@ -65,8 +72,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	router := chi.NewRouter()
+	router.Use(otelchi.Middleware("wallet-service"))
 	router.Use(metrics.Middleware)
 	router.Handle("/metrics", promhttp.Handler())
 	router.Get("/swagger/*", httpSwagger.Handler(
@@ -101,6 +108,9 @@ func main() {
 
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		log.Printf("HTTP shutdown error: %v", err)
+	}
+	if err := tracingShutdown(ctx); err != nil {
+		log.Printf("tracing shutdown error: %v", err)
 	}
 
 	log.Println("server stopped gracefully")

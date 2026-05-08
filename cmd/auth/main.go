@@ -17,13 +17,16 @@ import (
 	"github.com/AriartyyyA/gobank/internal/auth/usecase"
 	"github.com/AriartyyyA/gobank/pkg/metrics"
 	"github.com/AriartyyyA/gobank/pkg/ratelimit"
+	"github.com/AriartyyyA/gobank/pkg/tracing"
 	pb "github.com/AriartyyyA/gobank/proto/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"github.com/riandyrn/otelchi"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -48,6 +51,11 @@ func main() {
 	)
 	defer cancel()
 
+	tracingShutdown, err := tracing.Init(ctx, "auth-service")
+	if err != nil {
+		log.Fatalf("tracing error: %v", err)
+	}
+
 	pool, err := pgxpool.New(context.Background(), os.Getenv("DB_URL"))
 	if err != nil {
 		log.Fatal(err)
@@ -68,7 +76,9 @@ func main() {
 	uc := usecase.NewAuthUseCase(repo, jwtSecret, redisClient)
 
 	// grpc server
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	)
 	authGrpc := grpcDelivery.NewAuthGRPCServer(uc)
 	pb.RegisterAuthServiceServer(grpcServer, authGrpc)
 
@@ -89,6 +99,7 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(ratelimit.Middleware(rate))
+	router.Use(otelchi.Middleware("auth-service"))
 	router.Use(metrics.Middleware)
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
@@ -116,6 +127,9 @@ func main() {
 		10*time.Second,
 	)
 	defer cancel()
+	if err := tracingShutdown(ctx); err != nil {
+		log.Printf("tracing shutdown error: %v", err)
+	}
 
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		log.Printf("HTTP shutdown error: %v", err)

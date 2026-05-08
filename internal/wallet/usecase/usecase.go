@@ -9,6 +9,8 @@ import (
 	"github.com/AriartyyyA/gobank/internal/wallet/domain"
 	"github.com/AriartyyyA/gobank/pkg/kafka/events"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
+	tr "go.opentelemetry.io/otel/trace"
 )
 
 type WalletUseCase struct {
@@ -62,6 +64,13 @@ func (uc *WalletUseCase) Transfer(ctx context.Context, fromWalletID, toWalletID 
 	if walletFrom.Balance < amount {
 		return domain.ErrNoMoney
 	}
+
+	span := tr.SpanFromContext(ctx)
+	span.SetAttributes(
+		attribute.String("transfer.from_wallet_id", fromWalletID),
+		attribute.String("transfer.to_wallet_id", toWalletID),
+		attribute.Int64("transfer.amount", amount),
+	)
 
 	_, err = uc.repo.FindWalletByID(ctx, toWalletID)
 	if err != nil {

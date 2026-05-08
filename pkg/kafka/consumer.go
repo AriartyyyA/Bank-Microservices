@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type Consumer struct {
@@ -22,13 +24,19 @@ func NewConsumer(brokers []string, topic, groupID string) *Consumer {
 	return &Consumer{reader: reader}
 }
 
-func (c *Consumer) Read(ctx context.Context) (kafka.Message, error) {
+func (c *Consumer) Read(ctx context.Context) (context.Context, kafka.Message, error) {
 	message, err := c.reader.ReadMessage(ctx)
 	if err != nil {
-		return kafka.Message{}, err
+		return nil, kafka.Message{}, err
 	}
 
-	return message, nil
+	carrier := propagation.MapCarrier{}
+	for _, h := range message.Headers {
+		carrier[h.Key] = string(h.Value)
+	}
+	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
+
+	return ctx, message, nil
 }
 
 func (c *Consumer) Close() error {

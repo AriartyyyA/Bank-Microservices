@@ -107,6 +107,7 @@ services:
       JWT_SECRET: secret
       REDIS_URL: redis:6379
       REDIS_PASSWORD: secret
+      JAEGER_ENDPOINT: jaeger:4317
     depends_on:
       postgres_auth:
         condition: service_healthy
@@ -128,6 +129,7 @@ services:
       DB_URL_WALLET: postgres://gobank:secret@postgres_wallet:5432/gobank_wallet?sslmode=disable
       KAFKA_BROKERS: kafka:29092
       AUTH_GRPC_ADDR: auth:9090
+      JAEGER_ENDPOINT: jaeger:4317
     depends_on:
       postgres_wallet:
         condition: service_healthy
@@ -147,6 +149,7 @@ services:
     container_name: gobank_notification
     environment:
       KAFKA_BROKERS: kafka:29092
+      JAEGER_ENDPOINT: jaeger:4317
     depends_on:
       kafka:
         condition: service_healthy
@@ -179,6 +182,19 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
     - gobank
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: gobank-jaeger
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - gobank
+    
 networks:
   gobank:
     driver: bridge

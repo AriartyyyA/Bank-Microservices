@@ -8,6 +8,7 @@ import (
 
 	"github.com/AriartyyyA/gobank/pkg/kafka"
 	"github.com/AriartyyyA/gobank/pkg/kafka/events"
+	"go.opentelemetry.io/otel"
 )
 
 type TransferConsumer struct {
@@ -20,23 +21,23 @@ func NewTransferConsumer(consumer *kafka.Consumer) *TransferConsumer {
 
 func (c *TransferConsumer) Start(ctx context.Context) error {
 	for {
-		message, err := c.consumer.Read(ctx)
+		msgCtx, message, err := c.consumer.Read(ctx)
 		if err != nil {
-			select {
-			case <-ctx.Done():
-				return fmt.Errorf("ctx close: %w", err)
-			default:
-				return err
-			}
+			return fmt.Errorf("message read error: %w", err)
 		}
+
+		msgCtx, span := otel.Tracer("notification-consumer").Start(msgCtx, "process transfer event")
 
 		var event events.TransferEvent
 		if err := json.Unmarshal(message.Value, &event); err != nil {
 			log.Printf("failed to unmarshall event: %v", err)
+			span.End()
 			continue
 		}
 
 		log.Printf("transfer event: from=%s to=%s amount=%d",
 			event.FromWalletID, event.ToWalletID, event.Amount)
+
+		span.End()
 	}
 }
